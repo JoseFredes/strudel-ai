@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="/src/styles.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Strudel AI</title>
+    <script type="module" src="/src/main.ts" defer></script>
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <div class="controls">
+          <button id="play" title="Evaluate and play (Ctrl+Enter)">▶ Play</button>
+          <button id="stop" title="Stop audio">■ Stop</button>
+          <button id="eval" title="Re-evaluate current code">⟳ Eval</button>
+          <select id="examples" title="Load example">
+            <option value="">— examples —</option>
+          </select>
+          <button id="clear" title="Empty the editor">✕ Clear</button>
+          <div class="bpm-group" title="Tempo (BPM)">
+            <input id="bpm" type="range" min="60" max="180" value="120" step="1" disabled />
+            <span id="bpm-label">-- BPM</span>
+          </div>
+          <div class="spacer"></div>
+          <input id="apikey" type="password" placeholder="OpenAI key" />
+        </div>
+      </header>
+      <main>
+        <div id="editor-pane">
+          <div id="editor"></div>
+        </div>
+        <aside id="chat-pane">
+          <div id="chat-header">
+            <span>💬 chat</span>
+            <button id="clear-chat" title="Clear chat history">clear</button>
+          </div>
+          <div id="messages"></div>
+          <div id="chat-input">
+            <textarea id="prompt" rows="2"
+              placeholder="agrega un bajo rodante en c… o: mete unos hats rápidos panorámicos…"></textarea>
+            <button id="generate" title="Enter para enviar">✨ Add</button>
+          </div>
+        </aside>
+      </main>
+      <footer id="status">loading…</footer>
+    </div>
+  </body>
+</html>
