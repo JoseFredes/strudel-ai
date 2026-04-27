@@ -52,21 +52,24 @@
 
       <main>
         <div id="editor-pane">
-          <div id="left-pane">
-            <div class="pane-header" id="left-pane-header">
-              <span class="pane-slot-label" id="left-slot-label"></span>
-              <button class="pane-play" id="left-play" title="Play this slot (Ctrl+Enter)">▶</button>
+          <div id="editor-area">
+            <div id="left-pane">
+              <div class="pane-tab" id="left-tab">
+                <span class="pane-tab-name" id="left-slot-label"></span>
+                <button class="pane-tab-play" id="left-play" title="Eval (Ctrl+Enter)">▶</button>
+              </div>
+              <div id="editor"></div>
             </div>
-            <div id="editor"></div>
-          </div>
-          <div id="right-pane" hidden>
-            <div class="pane-header" id="right-pane-header">
-              <button class="pane-slot-nav" id="right-prev" title="Previous slot">‹</button>
-              <span class="pane-slot-label" id="right-slot-label"></span>
-              <button class="pane-slot-nav" id="right-next" title="Next slot">›</button>
-              <button class="pane-play" id="right-play" title="Play this slot (Ctrl+Enter)">▶</button>
+            <div id="split-divider" hidden></div>
+            <div id="right-pane" hidden>
+              <div class="pane-tab" id="right-tab">
+                <button class="pane-tab-nav" id="right-prev" title="Slot anterior">‹</button>
+                <span class="pane-tab-name" id="right-slot-label"></span>
+                <button class="pane-tab-nav" id="right-next" title="Slot siguiente">›</button>
+                <button class="pane-tab-play" id="right-play" title="Eval (Ctrl+Enter)">▶</button>
+              </div>
+              <div id="editor-right"></div>
             </div>
-            <div id="editor-right"></div>
           </div>
           <canvas id="visualizer"></canvas>
         </div>

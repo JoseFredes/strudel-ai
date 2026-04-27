@@ -23,7 +23,12 @@ const keyModal = document.getElementById('key-modal') as HTMLDivElement;
 const modalApikey = document.getElementById('modal-apikey') as HTMLInputElement;
 const splitBtn = document.getElementById('split-btn') as HTMLButtonElement;
 const editorPane = document.getElementById('editor-pane') as HTMLDivElement;
+const editorArea = document.getElementById('editor-area') as HTMLDivElement;
+const leftPane = document.getElementById('left-pane') as HTMLDivElement;
 const rightPane = document.getElementById('right-pane') as HTMLDivElement;
+const splitDivider = document.getElementById('split-divider') as HTMLDivElement;
+const leftTab = document.getElementById('left-tab') as HTMLDivElement;
+const rightTab = document.getElementById('right-tab') as HTMLDivElement;
 const leftSlotLabel = document.getElementById('left-slot-label') as HTMLSpanElement;
 const rightSlotLabel = document.getElementById('right-slot-label') as HTMLSpanElement;
 
@@ -153,13 +158,17 @@ let splitActive = false;
 let rightSlotIdx = 1;
 let rightPaneCode = '';
 let rightEditor: ReturnType<typeof createPaneEditor> | null = null;
+function setActiveTab(side: 'left' | 'right') {
+  leftTab.classList.toggle('active', side === 'left');
+  rightTab.classList.toggle('active', side === 'right');
+}
 
 function updateLeftLabel() {
-  leftSlotLabel.textContent = `slot ${getSlot(getActiveIdx()).name}`;
+  leftSlotLabel.textContent = getSlot(getActiveIdx()).name;
 }
 
 function updateRightLabel() {
-  rightSlotLabel.textContent = `slot ${getSlot(rightSlotIdx).name}`;
+  rightSlotLabel.textContent = getSlot(rightSlotIdx).name;
 }
 
 function setRightSlot(idx: number) {
@@ -171,10 +180,11 @@ function setRightSlot(idx: number) {
 
 function activateSplit() {
   splitActive = true;
+  splitDivider.hidden = false;
   rightPane.hidden = false;
   editorPane.classList.add('split');
   splitBtn.classList.add('active');
-  splitBtn.title = 'Close split view';
+  splitBtn.title = 'Cerrar split';
 
   const container = document.getElementById('editor-right')!;
   container.innerHTML = '';
@@ -186,32 +196,74 @@ function activateSplit() {
     code => { rightPaneCode = code; setSlotCode(rightSlotIdx, code); },
     () => evalPane('right'),
   );
+
+  // Focus tracking
+  document.getElementById('editor')!.addEventListener('mousedown', () => setActiveTab('left'), true);
+  container.addEventListener('mousedown', () => setActiveTab('right'), true);
+
   updateLeftLabel();
   updateRightLabel();
+  setActiveTab('left');
+  initDividerDrag();
 }
 
 function deactivateSplit() {
   splitActive = false;
+  splitDivider.hidden = true;
   rightPane.hidden = true;
   editorPane.classList.remove('split');
   splitBtn.classList.remove('active');
   splitBtn.title = 'Split view';
+  leftTab.classList.remove('active');
   rightEditor?.view.destroy();
   rightEditor = null;
+  leftPane.style.flex = '';
+  rightPane.style.flex = '';
 }
 
 async function evalPane(side: 'left' | 'right') {
   if (!engine.ready) { setStatus('strudel still loading…'); return; }
+  setActiveTab(side);
   const code = side === 'right' ? rightPaneCode : store.state.code;
-  if (side === 'right') {
-    setSlotCode(rightSlotIdx, code);
-  }
   try {
     await engine.evaluate(code);
     setStatus('playing ♪', 'ok');
   } catch (e: any) {
     setStatus(`eval error: ${e?.message ?? e}`, 'error');
   }
+}
+
+function initDividerDrag() {
+  let dragging = false;
+  let startX = 0;
+  let startLeftW = 0;
+
+  splitDivider.addEventListener('mousedown', e => {
+    dragging = true;
+    startX = e.clientX;
+    startLeftW = leftPane.getBoundingClientRect().width;
+    splitDivider.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const total = editorArea.getBoundingClientRect().width - 5; // divider width
+    const newLeft = Math.max(180, Math.min(total - 180, startLeftW + e.clientX - startX));
+    const ratio = newLeft / total;
+    leftPane.style.flex = `0 0 ${(ratio * 100).toFixed(2)}%`;
+    rightPane.style.flex = `0 0 ${((1 - ratio) * 100).toFixed(2)}%`;
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    splitDivider.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  });
 }
 
 // Keep left label in sync with active slot
