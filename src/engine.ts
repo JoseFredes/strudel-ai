@@ -14,12 +14,21 @@ type View = { state: { doc: { toString(): string } } };
 class Engine {
   private _evaluate: ((code: string) => Promise<void>) | null = null;
   private _stop: (() => void) | null = null;
-  ctx: AudioContext | null = null;
   ready = false;
+
+  // Always returns the current AudioContext — never a stale reference
+  get ctx(): AudioContext | null {
+    return getAudioContext() as AudioContext | null;
+  }
+
+  // Must be called synchronously inside a user-gesture handler (click, keydown)
+  // WKWebView requires resume() to happen within the event handler stack, not async
+  resumeCtx(): void {
+    this.ctx?.resume().catch(() => {});
+  }
 
   async init(view: View, canvas: HTMLCanvasElement) {
     initAudioOnFirstClick();
-    this.ctx = getAudioContext() as AudioContext;
 
     await evalScope(
       controls,
@@ -34,23 +43,28 @@ class Engine {
       registerSynthSounds(),
     ]);
 
-    initVisualizer(this.ctx);
+    const ctx = getAudioContext() as AudioContext;
+    initVisualizer(ctx);
     startVisualizer(canvas);
 
-    const ctx = this.ctx;
     const observingOutput = async (
       hap: any, deadline: number, duration: number, cps: number, t: number,
     ) => {
       const locs = hap?.context?.locations;
       if (locs?.length) {
-        const delay = Math.max(0, (t - ctx.currentTime) * 1000);
+        const now = (getAudioContext() as AudioContext).currentTime;
+        const delay = Math.max(0, (t - now) * 1000);
         if (delay < 3000) setTimeout(() => flashLocations(view as any, locs, 130), delay);
       }
       store.setPlaying(true, cps);
       return webaudioOutput(hap, deadline, duration, cps, t);
     };
 
-    const r = repl({ defaultOutput: observingOutput, getTime: () => ctx.currentTime, transpiler });
+    const r = repl({
+      defaultOutput: observingOutput,
+      getTime: () => (getAudioContext() as AudioContext).currentTime,
+      transpiler,
+    });
     this._evaluate = r.evaluate;
     this._stop = r.stop;
     this.ready = true;
@@ -58,15 +72,8 @@ class Engine {
     store.subscribe(s => setVisualizerState(s.isPlaying, s.cps));
   }
 
-  async ensureRunning(): Promise<void> {
-    if (this.ctx && this.ctx.state !== 'running') {
-      await this.ctx.resume();
-    }
-  }
-
   async evaluate(code: string): Promise<void> {
     if (!this.ready || !this._evaluate) throw new Error('engine not ready');
-    await this.ensureRunning();
     await this._evaluate(code);
     store.setPlaying(true);
   }
@@ -75,6 +82,12 @@ class Engine {
     if (!this.ready || !this._stop) return;
     this._stop();
     store.setPlaying(false);
+  }
+
+  // Safe to call from async context (e.g. visibilitychange)
+  async ensureRunning(): Promise<void> {
+    const ctx = this.ctx;
+    if (ctx && ctx.state !== 'running') await ctx.resume();
   }
 }
 

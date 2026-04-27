@@ -534,6 +534,12 @@ main {
 }
 .pane-tab.active .pane-tab-play { opacity: 1; }
 
+/* Drag-over highlight */
+.pane-tab.drag-over {
+  background: var(--gr-bg);
+  outline: 1px solid var(--gr-d);
+}
+
 /* In single-pane mode hide tab bars */
 #editor-pane:not(.split) .pane-tab { display: none; }
 

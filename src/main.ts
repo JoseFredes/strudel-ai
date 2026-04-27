@@ -113,6 +113,7 @@ store.subscribe(updateStatusSlot);
 
 async function evalCurrent() {
   if (!engine.ready) { setStatus('strudel still loading…'); return; }
+  engine.resumeCtx();
   try {
     await engine.evaluate(store.state.code);
     setStatus('playing ♪', 'ok');
@@ -223,6 +224,7 @@ function deactivateSplit() {
 
 async function evalPane(side: 'left' | 'right') {
   if (!engine.ready) { setStatus('strudel still loading…'); return; }
+  engine.resumeCtx(); // sync resume within user gesture
   setActiveTab(side);
   const code = side === 'right' ? rightPaneCode : store.state.code;
   try {
@@ -287,10 +289,11 @@ function closeKeyModal() { keyModal.hidden = true; }
 // ── Wire ─────────────────────────────────
 
 function wire() {
-  // Transport
-  document.getElementById('play')!.addEventListener('click', evalCurrent);
+  // Transport — resumeCtx() MUST be called synchronously in the click handler
+  // WKWebView requires AudioContext.resume() to run within the user gesture stack
+  document.getElementById('play')!.addEventListener('click', () => { engine.resumeCtx(); evalCurrent(); });
   document.getElementById('stop')!.addEventListener('click', () => { engine.stop(); setStatus('stopped'); });
-  document.getElementById('eval')!.addEventListener('click', evalCurrent);
+  document.getElementById('eval')!.addEventListener('click', () => { engine.resumeCtx(); evalCurrent(); });
   document.getElementById('clear')!.addEventListener('click', () => {
     pushHistoryAndSetCode('');
     setStatus('editor cleared');
@@ -343,6 +346,35 @@ function wire() {
   document.getElementById('open-patch')!.addEventListener('click', async () => {
     const patch = await openPatch();
     if (patch) { pushHistoryAndSetCode(patch.code); setStatus(`abierto: ${patch.name}`, 'ok'); }
+  });
+
+  // Drag slots into panes
+  document.querySelectorAll<HTMLButtonElement>('.slot').forEach(btn => {
+    btn.addEventListener('dragstart', e => {
+      e.dataTransfer!.setData('text/plain', btn.dataset.slot ?? '0');
+      e.dataTransfer!.effectAllowed = 'copy';
+    });
+  });
+
+  function wireDropTarget(el: HTMLElement, onDrop: (slotIdx: number) => void) {
+    el.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer!.dropEffect = 'copy'; el.classList.add('drag-over'); });
+    el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+    el.addEventListener('drop', e => {
+      e.preventDefault();
+      el.classList.remove('drag-over');
+      const idx = parseInt(e.dataTransfer!.getData('text/plain'), 10);
+      if (!isNaN(idx)) onDrop(idx);
+    });
+  }
+
+  wireDropTarget(document.getElementById('left-tab')!, idx => {
+    pushHistoryAndSetCode(store.state.code);
+    store.setCode(activateSlot(idx));
+    if (store.state.isPlaying) evalCurrent();
+  });
+  wireDropTarget(document.getElementById('right-tab')!, idx => {
+    if (!splitActive) activateSplit();
+    setRightSlot(idx);
   });
 
   // Split pane
