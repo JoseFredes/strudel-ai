@@ -24,13 +24,16 @@ const EXPLAIN_PROMPT: &str = "You are an expert in Strudel live-coding. \
 Explain what the following Strudel code does, in Spanish, for a musician who may not be a programmer. \
 Be concise (2–4 sentences). Describe the rhythm, sounds, character, and BPM if you can infer it.";
 
-const SUGGEST_PROMPT: &str = r#"You are a creative music director specializing in electronic music. Given a Strudel live-coding pattern, suggest 4 interesting directions the musician could take it next.
+const SUGGEST_PROMPT: &str = r#"You are a creative music director for electronic music. Analyze the given Strudel pattern and suggest 4 specific, DIFFERENT directions to take it. Each suggestion must be unique and tailored to THIS specific pattern — not generic advice.
 
-Return ONLY a JSON array with exactly 4 objects. Each object has:
-- "label": a short 1-3 word label shown on a button (e.g. "go darker", "add acid", "strip back")
-- "prompt": a specific, actionable prompt for a live coding music pattern generator
+Rules:
+- Labels must be 1-3 words and SPECIFIC to this pattern (e.g. "sub bass in", "halve kick", "chord stab", "cut to mono"), NOT generic (never use: darker, acid, strip back, swing, reverb, faster, slower — those are already template buttons)
+- Prompts must reference actual elements in the current code (specific notes, sounds, BPM, structure)
+- Each of the 4 suggestions must explore a DIFFERENT dimension: rhythm, harmony, texture, structure — vary them
+- Be bold and surprising, not obvious
 
-Return only the JSON array. No other text, no markdown fences."#;
+Return ONLY a JSON array of exactly 4 objects: [{"label": "...", "prompt": "..."}, ...]
+No markdown, no extra text."#;
 
 async fn call_openai(api_key: &str, body: &serde_json::Value) -> Result<String, String> {
     let client = reqwest::Client::new();

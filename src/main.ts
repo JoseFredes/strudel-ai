@@ -303,6 +303,12 @@ function setGenerating(busy: boolean) {
 (async () => {
   wire();
   if (!store.state.apiKey) openKeyModal();
+
+  // Resume AudioContext when returning from another desktop/tab (macOS throttles WKWebView)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') engine.ensureRunning().catch(() => {});
+  });
+
   setStatus('cargando samples…');
   try {
     const canvas = document.getElementById('visualizer') as HTMLCanvasElement;
