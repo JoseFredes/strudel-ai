@@ -1,12 +1,12 @@
 [package]
-name = "strudel-ai"
+name = "loopcraft"
 version = "0.1.0"
-description = "Strudel live coding editor with AI"
+description = "AI-powered live coding music editor"
 authors = ["you"]
 edition = "2021"
 
 [lib]
-name = "strudel_ai_lib"
+name = "loopcraft_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

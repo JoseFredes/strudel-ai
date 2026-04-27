@@ -9,8 +9,8 @@ export type AppState = {
 
 type Listener = (state: AppState) => void;
 
-const KEY_STORAGE = 'strudel-ai:openai-key';
-const CODE_STORAGE = 'strudel-ai:code';
+const KEY_STORAGE = 'loopcraft:openai-key';
+const CODE_STORAGE = 'loopcraft:code';
 
 const envKey = (import.meta.env.VITE_OPENAI_API_KEY as string | undefined)?.trim() ?? '';
 

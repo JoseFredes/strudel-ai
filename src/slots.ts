@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'strudel-ai:slots';
+const STORAGE_KEY = 'loopcraft:slots';
 const COUNT = 8;
 
 export type Slot = { code: string; name: string };

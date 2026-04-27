@@ -3,7 +3,7 @@ import { pushHistoryAndSetCode } from './editor';
 import { generatePattern, explainPattern, generateVariations, suggestDirections, type Suggestion } from './ai';
 import { engine } from './engine';
 
-const STORAGE_KEY = 'strudel-ai:chat';
+const STORAGE_KEY = 'loopcraft:chat';
 
 type MsgRole = 'user' | 'assistant' | 'variation' | 'suggestions' | 'error' | 'system';
 

@@ -28,7 +28,7 @@ const SUGGEST_PROMPT: &str = r#"You are a creative music director specializing i
 
 Return ONLY a JSON array with exactly 4 objects. Each object has:
 - "label": a short 1-3 word label shown on a button (e.g. "go darker", "add acid", "strip back")
-- "prompt": a specific, actionable prompt for a Strudel AI pattern generator
+- "prompt": a specific, actionable prompt for a live coding music pattern generator
 
 Return only the JSON array. No other text, no markdown fences."#;
 
