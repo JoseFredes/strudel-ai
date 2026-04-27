@@ -1,9 +1,9 @@
 import { store } from './store';
 import { engine } from './engine';
-import { createEditor, pushHistoryAndSetCode } from './editor';
+import { createEditor, createPaneEditor, pushHistoryAndSetCode } from './editor';
 import { mountChat, clearChat, handleMessageClick, setPromptFiller, setStatusHandler, setGeneratingHandler, doGenerate, doVariations, doExplain, doSuggest } from './chat';
 import { historyBack, historyForward, historyCanBack, historyCanForward } from './history';
-import { getSlot, getActiveIdx, setSlotName, activateSlot } from './slots';
+import { getSlot, getActiveIdx, setSlotName, setSlotCode, activateSlot } from './slots';
 import { parseCps, cpsToBpm, bpmToCps } from './transport';
 import { savePatch, openPatch } from './ai';
 import { EXAMPLES } from './examples';
@@ -21,6 +21,11 @@ const recordBtn = document.getElementById('record') as HTMLButtonElement;
 const keyBtn = document.getElementById('key-btn') as HTMLButtonElement;
 const keyModal = document.getElementById('key-modal') as HTMLDivElement;
 const modalApikey = document.getElementById('modal-apikey') as HTMLInputElement;
+const splitBtn = document.getElementById('split-btn') as HTMLButtonElement;
+const editorPane = document.getElementById('editor-pane') as HTMLDivElement;
+const rightPane = document.getElementById('right-pane') as HTMLDivElement;
+const leftSlotLabel = document.getElementById('left-slot-label') as HTMLSpanElement;
+const rightSlotLabel = document.getElementById('right-slot-label') as HTMLSpanElement;
 
 function setStatus(msg: string, kind: 'info' | 'error' | 'ok' = 'info') {
   statusEl.textContent = msg;
@@ -142,6 +147,76 @@ async function toggleRecord() {
   }
 }
 
+// ── Split pane ────────────────────────────
+
+let splitActive = false;
+let rightSlotIdx = 1;
+let rightPaneCode = '';
+let rightEditor: ReturnType<typeof createPaneEditor> | null = null;
+
+function updateLeftLabel() {
+  leftSlotLabel.textContent = `slot ${getSlot(getActiveIdx()).name}`;
+}
+
+function updateRightLabel() {
+  rightSlotLabel.textContent = `slot ${getSlot(rightSlotIdx).name}`;
+}
+
+function setRightSlot(idx: number) {
+  rightSlotIdx = ((idx % 8) + 8) % 8;
+  rightPaneCode = getSlot(rightSlotIdx).code;
+  rightEditor?.setCode(rightPaneCode);
+  updateRightLabel();
+}
+
+function activateSplit() {
+  splitActive = true;
+  rightPane.hidden = false;
+  editorPane.classList.add('split');
+  splitBtn.classList.add('active');
+  splitBtn.title = 'Close split view';
+
+  const container = document.getElementById('editor-right')!;
+  container.innerHTML = '';
+  rightPaneCode = getSlot(rightSlotIdx).code;
+
+  rightEditor = createPaneEditor(
+    container,
+    rightPaneCode,
+    code => { rightPaneCode = code; setSlotCode(rightSlotIdx, code); },
+    () => evalPane('right'),
+  );
+  updateLeftLabel();
+  updateRightLabel();
+}
+
+function deactivateSplit() {
+  splitActive = false;
+  rightPane.hidden = true;
+  editorPane.classList.remove('split');
+  splitBtn.classList.remove('active');
+  splitBtn.title = 'Split view';
+  rightEditor?.view.destroy();
+  rightEditor = null;
+}
+
+async function evalPane(side: 'left' | 'right') {
+  if (!engine.ready) { setStatus('strudel still loading…'); return; }
+  const code = side === 'right' ? rightPaneCode : store.state.code;
+  if (side === 'right') {
+    setSlotCode(rightSlotIdx, code);
+  }
+  try {
+    await engine.evaluate(code);
+    setStatus('playing ♪', 'ok');
+  } catch (e: any) {
+    setStatus(`eval error: ${e?.message ?? e}`, 'error');
+  }
+}
+
+// Keep left label in sync with active slot
+store.subscribe(() => { if (splitActive) updateLeftLabel(); });
+
 // ── API Key modal ─────────────────────────
 
 function updateKeyBtn() {
@@ -217,6 +292,13 @@ function wire() {
     const patch = await openPatch();
     if (patch) { pushHistoryAndSetCode(patch.code); setStatus(`abierto: ${patch.name}`, 'ok'); }
   });
+
+  // Split pane
+  splitBtn.addEventListener('click', () => { splitActive ? deactivateSplit() : activateSplit(); });
+  document.getElementById('left-play')!.addEventListener('click', () => evalPane('left'));
+  document.getElementById('right-play')!.addEventListener('click', () => evalPane('right'));
+  document.getElementById('right-prev')!.addEventListener('click', () => setRightSlot(rightSlotIdx - 1));
+  document.getElementById('right-next')!.addEventListener('click', () => setRightSlot(rightSlotIdx + 1));
 
   // Record
   recordBtn.addEventListener('click', toggleRecord);

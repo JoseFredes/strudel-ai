@@ -31,6 +31,7 @@
 
           <div class="spacer"></div>
 
+          <button id="split-btn" title="Split view">split</button>
           <button id="save-patch">save</button>
           <button id="open-patch">open</button>
           <button id="record">rec</button>
@@ -51,7 +52,22 @@
 
       <main>
         <div id="editor-pane">
-          <div id="editor"></div>
+          <div id="left-pane">
+            <div class="pane-header" id="left-pane-header">
+              <span class="pane-slot-label" id="left-slot-label"></span>
+              <button class="pane-play" id="left-play" title="Play this slot (Ctrl+Enter)">▶</button>
+            </div>
+            <div id="editor"></div>
+          </div>
+          <div id="right-pane" hidden>
+            <div class="pane-header" id="right-pane-header">
+              <button class="pane-slot-nav" id="right-prev" title="Previous slot">‹</button>
+              <span class="pane-slot-label" id="right-slot-label"></span>
+              <button class="pane-slot-nav" id="right-next" title="Next slot">›</button>
+              <button class="pane-play" id="right-play" title="Play this slot (Ctrl+Enter)">▶</button>
+            </div>
+            <div id="editor-right"></div>
+          </div>
           <canvas id="visualizer"></canvas>
         </div>
 

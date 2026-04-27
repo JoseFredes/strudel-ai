@@ -421,6 +421,12 @@ main {
   overflow: hidden;
 }
 
+/* ── Split button ────────────────────────── */
+
+#split-btn { color: var(--tx-2); border-color: var(--bd-0); }
+#split-btn.active { color: var(--gr); border-color: var(--gr-d); background: var(--gr-bg); }
+#split-btn.active:hover:not(:disabled) { border-color: var(--gr); }
+
 /* ── Editor pane ─────────────────────────── */
 
 #editor-pane {
@@ -429,6 +435,69 @@ main {
   min-height: 0;
   border-right: 1px solid var(--bd-0);
 }
+
+/* Split layout — two columns */
+#editor-pane.split {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr var(--viz-h);
+}
+#editor-pane.split #left-pane  { border-right: 1px solid var(--bd-1); }
+#editor-pane.split #visualizer { grid-column: 1 / -1; }
+
+/* Pane containers */
+#left-pane, #right-pane {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Pane header strip */
+.pane-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--bd-0);
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.pane-slot-label {
+  flex: 1;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tx-2);
+}
+
+.pane-slot-nav {
+  height: 20px;
+  line-height: 20px;
+  padding: 0 5px;
+  font-size: 13px;
+  color: var(--tx-2);
+  border-color: var(--bd-0);
+  border-radius: var(--radius-sm);
+}
+.pane-slot-nav:hover:not(:disabled) { color: var(--tx-1); border-color: var(--bd-1); }
+
+.pane-play {
+  height: 20px;
+  line-height: 20px;
+  padding: 0 8px;
+  font-size: 10px;
+  color: var(--gr);
+  border-color: var(--gr-d);
+  border-radius: var(--radius-sm);
+  background: transparent;
+}
+.pane-play:hover:not(:disabled) { background: var(--gr-bg); border-color: var(--gr); }
+
+/* Hide pane headers in single-pane mode */
+#editor-pane:not(.split) .pane-header { display: none; }
 
 #editor { min-height: 0; overflow: hidden; }
 

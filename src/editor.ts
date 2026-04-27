@@ -52,3 +52,41 @@ export function pushHistoryAndSetCode(code: string) {
   historyPush(store.state.code);
   store.setCode(code);
 }
+
+// Independent editor not tied to the global store — used for split pane
+export function createPaneEditor(
+  parent: HTMLElement,
+  initialCode: string,
+  onChange: (code: string) => void,
+  onEvaluate: () => void,
+): { view: EditorView; setCode: (code: string) => void } {
+  const view = new EditorView({
+    parent,
+    state: EditorState.create({
+      doc: initialCode,
+      extensions: [
+        basicSetup,
+        javascript(),
+        highlightExtension,
+        strudelCompletions,
+        EditorView.updateListener.of(update => {
+          if (!update.docChanged) return;
+          onChange(view.state.doc.toString());
+        }),
+        Prec.highest(keymap.of([
+          { key: 'Mod-Enter', run: () => { onEvaluate(); return true; } },
+          indentWithTab,
+        ])),
+      ],
+    }),
+  });
+
+  return {
+    view,
+    setCode: (code: string) => {
+      const current = view.state.doc.toString();
+      if (current === code) return;
+      view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: code } });
+    },
+  };
+}
