@@ -10,39 +10,95 @@
   <body>
     <div id="app">
       <header>
-        <div class="controls">
-          <button id="play" title="Evaluate and play (Ctrl+Enter)">▶ Play</button>
-          <button id="stop" title="Stop audio">■ Stop</button>
-          <button id="eval" title="Re-evaluate current code">⟳ Eval</button>
+        <!-- Transport row -->
+        <div class="controls top-row">
+          <button id="play" title="Play (Ctrl+Enter)">▶ Play</button>
+          <button id="stop" title="Stop">■ Stop</button>
+          <button id="eval" title="Re-evaluate">⟳ Eval</button>
           <select id="examples" title="Load example">
             <option value="">— examples —</option>
           </select>
-          <button id="clear" title="Empty the editor">✕ Clear</button>
-          <div class="bpm-group" title="Tempo (BPM)">
-            <input id="bpm" type="range" min="60" max="180" value="120" step="1" disabled />
-            <span id="bpm-label">-- BPM</span>
+          <button id="clear" title="Clear editor">✕ Clear</button>
+
+          <div class="ctrl-sep"></div>
+
+          <!-- History -->
+          <button id="hist-back" title="Undo (Ctrl+Z)" disabled>←</button>
+          <button id="hist-fwd" title="Redo" disabled>→</button>
+
+          <div class="ctrl-sep"></div>
+
+          <!-- BPM + Tap -->
+          <div class="bpm-group">
+            <input id="bpm" type="range" min="60" max="200" value="120" step="1" disabled />
+            <span id="bpm-label">— BPM</span>
+            <button id="tap-tempo" title="Tap tempo">♪ Tap</button>
           </div>
+
           <div class="spacer"></div>
+
+          <!-- File ops -->
+          <button id="save-patch" title="Save patch to file">💾 Save</button>
+          <button id="open-patch" title="Open patch from file">📂 Open</button>
+
+          <!-- Record -->
+          <button id="record" title="Record audio">⏺ Rec</button>
+
+          <!-- API key -->
           <input id="apikey" type="password" placeholder="OpenAI key" />
         </div>
+
+        <!-- Slots row -->
+        <div id="slots-row">
+          <span class="slots-label">slots</span>
+          <button class="slot active" data-slot="0" title="Slot 1">1</button>
+          <button class="slot" data-slot="1" title="Slot 2">2</button>
+          <button class="slot" data-slot="2" title="Slot 3">3</button>
+          <button class="slot" data-slot="3" title="Slot 4">4</button>
+          <button class="slot" data-slot="4" title="Slot 5">5</button>
+          <button class="slot" data-slot="5" title="Slot 6">6</button>
+          <button class="slot" data-slot="6" title="Slot 7">7</button>
+          <button class="slot" data-slot="7" title="Slot 8">8</button>
+        </div>
       </header>
+
       <main>
         <div id="editor-pane">
           <div id="editor"></div>
+          <canvas id="visualizer"></canvas>
         </div>
+
         <aside id="chat-pane">
           <div id="chat-header">
             <span>💬 chat</span>
-            <button id="clear-chat" title="Clear chat history">clear</button>
+            <div class="chat-header-actions">
+              <button id="explain" title="Explain current code in Spanish">✦ Explain</button>
+              <button id="clear-chat" title="Clear chat">clear</button>
+            </div>
           </div>
+
+          <div id="templates">
+            <button class="tpl" data-tpl="make it darker and more hypnotic">darker</button>
+            <button class="tpl" data-tpl="add more acid 303 resonance on the bass">acid</button>
+            <button class="tpl" data-tpl="remove the kick drum">no kick</button>
+            <button class="tpl" data-tpl="add swing and groove to the pattern">swing</button>
+            <button class="tpl" data-tpl="add more reverb and spatial depth">reverb</button>
+            <button class="tpl" data-tpl="make the hi hats faster and more panned">hats</button>
+          </div>
+
           <div id="messages"></div>
+
           <div id="chat-input">
             <textarea id="prompt" rows="2"
               placeholder="agrega un bajo rodante en c… o: mete unos hats rápidos panorámicos…"></textarea>
-            <button id="generate" title="Enter para enviar">✨ Add</button>
+            <div class="send-row">
+              <button id="generate" title="Generate (Enter)">✨ Add</button>
+              <button id="variations-btn" title="Generate 3 variations">⋯ Vars</button>
+            </div>
           </div>
         </aside>
       </main>
+
       <footer id="status">loading…</footer>
     </div>
   </body>
