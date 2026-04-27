@@ -24,6 +24,14 @@ const EXPLAIN_PROMPT: &str = "You are an expert in Strudel live-coding. \
 Explain what the following Strudel code does, in Spanish, for a musician who may not be a programmer. \
 Be concise (2–4 sentences). Describe the rhythm, sounds, character, and BPM if you can infer it.";
 
+const SUGGEST_PROMPT: &str = r#"You are a creative music director specializing in electronic music. Given a Strudel live-coding pattern, suggest 4 interesting directions the musician could take it next.
+
+Return ONLY a JSON array with exactly 4 objects. Each object has:
+- "label": a short 1-3 word label shown on a button (e.g. "go darker", "add acid", "strip back")
+- "prompt": a specific, actionable prompt for a Strudel AI pattern generator
+
+Return only the JSON array. No other text, no markdown fences."#;
+
 async fn call_openai(api_key: &str, body: &serde_json::Value) -> Result<String, String> {
     let client = reqwest::Client::new();
     let res = client
@@ -144,6 +152,30 @@ async fn generate_variations(
 }
 
 #[tauri::command]
+async fn suggest_directions(
+    code: String,
+    api_key: String,
+    model: Option<String>,
+) -> Result<Vec<serde_json::Value>, String> {
+    if api_key.trim().is_empty() {
+        return Err("missing OpenAI API key".into());
+    }
+    let model = model.unwrap_or_else(|| "gpt-4o".to_string());
+    let body = serde_json::json!({
+        "model": model,
+        "temperature": 0.9,
+        "messages": [
+            { "role": "system", "content": SUGGEST_PROMPT },
+            { "role": "user", "content": format!("Current pattern:\n```\n{code}\n```") }
+        ]
+    });
+    let raw = call_openai(&api_key, &body).await?;
+    let parsed: Vec<serde_json::Value> = serde_json::from_str(&raw)
+        .map_err(|e| format!("invalid suggestions json: {e}"))?;
+    Ok(parsed)
+}
+
+#[tauri::command]
 async fn save_patch_dialog(content: String) -> Result<Option<String>, String> {
     let handle = rfd::AsyncFileDialog::new()
         .add_filter("Strudel patch", &["strudel"])
@@ -199,6 +231,7 @@ pub fn run() {
             generate_pattern,
             explain_pattern,
             generate_variations,
+            suggest_directions,
             save_patch_dialog,
             open_patch_dialog,
         ])

@@ -1,11 +1,11 @@
 import { store } from './store';
 import { pushHistoryAndSetCode } from './editor';
-import { generatePattern, explainPattern, generateVariations } from './ai';
+import { generatePattern, explainPattern, generateVariations, suggestDirections, type Suggestion } from './ai';
 import { engine } from './engine';
 
 const STORAGE_KEY = 'strudel-ai:chat';
 
-type MsgRole = 'user' | 'assistant' | 'variation' | 'error' | 'system';
+type MsgRole = 'user' | 'assistant' | 'variation' | 'suggestions' | 'error' | 'system';
 
 type ChatMsg = {
   role: MsgRole;
@@ -13,6 +13,7 @@ type ChatMsg = {
   id?: string;
   patchBefore?: string;
   varCode?: string;
+  suggestions?: Suggestion[];
 };
 
 // ── State ────────────────────────────────
@@ -55,6 +56,22 @@ function render() {
       div.appendChild(label);
       div.appendChild(body);
       div.title = 'Click to apply this variation';
+    } else if (m.role === 'suggestions' && m.suggestions) {
+      const label = document.createElement('div');
+      label.className = 'var-label';
+      label.textContent = '✦ try one of these';
+      div.appendChild(label);
+      const chips = document.createElement('div');
+      chips.className = 'suggestion-chips';
+      for (const s of m.suggestions) {
+        const chip = document.createElement('button');
+        chip.className = 'suggestion-chip';
+        chip.textContent = s.label;
+        chip.title = s.prompt;
+        chip.dataset.prompt = s.prompt;
+        chips.appendChild(chip);
+      }
+      div.appendChild(chips);
     } else {
       const body = document.createElement('span');
       body.className = 'msg-body';
@@ -107,11 +124,33 @@ function applyVariation(id: string) {
   engine.evaluate(msg.varCode).catch(() => {});
 }
 
+let promptFiller: ((text: string) => void) | null = null;
+let statusFn: ((m: string, k?: any) => void) | null = null;
+let generatingFn: ((busy: boolean) => void) | null = null;
+
+export function setPromptFiller(fn: (text: string) => void) { promptFiller = fn; }
+export function setStatusHandler(fn: (m: string, k?: any) => void) { statusFn = fn; }
+export function setGeneratingHandler(fn: (busy: boolean) => void) { generatingFn = fn; }
+
 export function handleMessageClick(e: MouseEvent) {
   const target = e.target as HTMLElement;
   const msgDiv = target.closest<HTMLElement>('.msg');
   if (!msgDiv) return;
   if (target.classList.contains('revert')) { revertToTurn(target.dataset.id ?? ''); return; }
+  if (target.classList.contains('suggestion-chip') && target.dataset.prompt) {
+    const prompt = target.dataset.prompt;
+    if (statusFn && generatingFn) {
+      generatingFn(true);
+      target.classList.add('loading');
+      doGenerate(prompt, statusFn).finally(() => {
+        generatingFn!(false);
+        target.classList.remove('loading');
+      });
+    } else {
+      promptFiller?.(prompt);
+    }
+    return;
+  }
   if (msgDiv.classList.contains('variation') && msgDiv.dataset.id) applyVariation(msgDiv.dataset.id);
 }
 
@@ -148,6 +187,22 @@ export async function doVariations(prompt: string, setStatus: (m: string, k?: an
   } catch (e: any) {
     addMsg({ role: 'error', content: `error: ${e}` });
     setStatus(`variations failed: ${e}`, 'error');
+  }
+}
+
+export async function doSuggest(setStatus: (m: string, k?: any) => void) {
+  const { apiKey, code } = store.state;
+  if (!code.trim()) { setStatus('nada que analizar', 'error'); return; }
+  if (!apiKey) { addMsg({ role: 'error', content: 'pega tu OpenAI key arriba' }); return; }
+
+  setStatus('analizando…');
+  try {
+    const suggestions = await suggestDirections(code, apiKey);
+    addMsg({ role: 'suggestions', content: '', suggestions });
+    setStatus('elige una dirección', 'ok');
+  } catch (e: any) {
+    addMsg({ role: 'error', content: `error: ${e}` });
+    setStatus(`suggest failed: ${e}`, 'error');
   }
 }
 

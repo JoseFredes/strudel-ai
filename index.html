@@ -34,8 +34,7 @@
           <button id="save-patch">save</button>
           <button id="open-patch">open</button>
           <button id="record">rec</button>
-
-          <input id="apikey" type="password" placeholder="openai key" />
+          <button id="key-btn" title="API Key">key</button>
         </div>
 
         <div id="slots-row">
@@ -60,18 +59,31 @@
           <div id="chat-header">
             <span class="chat-label">chat</span>
             <div class="chat-header-actions">
+              <button id="suggest-btn">suggest</button>
               <button id="explain">explain</button>
               <button id="clear-chat">clear</button>
             </div>
           </div>
 
           <div id="templates">
+            <button class="tpl" data-tpl="rewrite as classic house music: four-on-the-floor kick, offbeat open hats, clap on 2 and 4, warm chord stab around 125 bpm">house</button>
+            <button class="tpl" data-tpl="add African house elements: tribal congas, shakers, polyrhythmic hi-hat patterns, warm sub-bass groove">afro</button>
+            <button class="tpl" data-tpl="strip to minimal techno: keep only kick and one hypnotic repeating element, extreme repetition, remove all excess complexity">minimal</button>
+            <button class="tpl" data-tpl="make it deep house: warm pad chords, jazzy bass line, slow swinging groove, soulful feel around 120 bpm">deep</button>
+            <button class="tpl" data-tpl="add dub techno character: long cavernous room reverb, ping-pong delay, dark resonant chords, sparse and meditative">dub</button>
+            <button class="tpl" data-tpl="add a melodic lead line in the same key with slow filter sweep, long reverb tail, and emotional phrasing">melodic</button>
+            <button class="tpl" data-tpl="dark Berlin techno style: cold mechanical hypnotic kick, sparse percussion, industrial and relentless">berlin</button>
+            <button class="tpl" data-tpl="make it harder and industrial: distorted kick transients, metallic clanging percussion, aggressive saturated textures">industrial</button>
             <button class="tpl" data-tpl="make it darker and more hypnotic">darker</button>
             <button class="tpl" data-tpl="add more acid 303 resonance on the bass">acid</button>
             <button class="tpl" data-tpl="remove the kick drum">no kick</button>
             <button class="tpl" data-tpl="add swing and groove to the pattern">swing</button>
             <button class="tpl" data-tpl="add more reverb and spatial depth">reverb</button>
             <button class="tpl" data-tpl="make the hi hats faster and more panned">hats</button>
+            <button class="tpl" data-tpl="increase tempo to around 145 bpm and make the pattern more driving and urgent">faster</button>
+            <button class="tpl" data-tpl="slow down to around 110 bpm, add more space between hits, more meditative feeling">slower</button>
+            <button class="tpl" data-tpl="make the bass heavier: add sub-bass layer, boost low end, make it more physical and powerful">bass</button>
+            <button class="tpl" data-tpl="add one new complementary textural layer without cluttering existing sounds">layer</button>
           </div>
 
           <div id="messages"></div>
@@ -92,6 +104,18 @@
         <span id="status-slot"></span>
       </footer>
 
+    </div>
+    <!-- API Key modal -->
+    <div id="key-modal" class="modal-backdrop" hidden>
+      <div class="modal">
+        <div class="modal-title">OpenAI API Key</div>
+        <p class="modal-desc">Your key is stored locally and never sent to any server other than OpenAI.</p>
+        <input id="modal-apikey" type="password" placeholder="sk-..." autocomplete="off" spellcheck="false" />
+        <div class="modal-actions">
+          <button id="modal-skip" class="modal-btn-secondary">skip</button>
+          <button id="modal-save" class="modal-btn-primary">save</button>
+        </div>
+      </div>
     </div>
   </body>
 </html>

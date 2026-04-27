@@ -1,7 +1,7 @@
 import { store } from './store';
 import { engine } from './engine';
 import { createEditor, pushHistoryAndSetCode } from './editor';
-import { mountChat, clearChat, handleMessageClick, doGenerate, doVariations, doExplain } from './chat';
+import { mountChat, clearChat, handleMessageClick, setPromptFiller, setStatusHandler, setGeneratingHandler, doGenerate, doVariations, doExplain, doSuggest } from './chat';
 import { historyBack, historyForward, historyCanBack, historyCanForward } from './history';
 import { getSlot, getActiveIdx, setSlotName, activateSlot } from './slots';
 import { parseCps, cpsToBpm, bpmToCps } from './transport';
@@ -18,6 +18,9 @@ const histBackBtn = document.getElementById('hist-back') as HTMLButtonElement;
 const histFwdBtn = document.getElementById('hist-fwd') as HTMLButtonElement;
 const promptEl = document.getElementById('prompt') as HTMLTextAreaElement;
 const recordBtn = document.getElementById('record') as HTMLButtonElement;
+const keyBtn = document.getElementById('key-btn') as HTMLButtonElement;
+const keyModal = document.getElementById('key-modal') as HTMLDivElement;
+const modalApikey = document.getElementById('modal-apikey') as HTMLInputElement;
 
 function setStatus(msg: string, kind: 'info' | 'error' | 'ok' = 'info') {
   statusEl.textContent = msg;
@@ -115,28 +118,46 @@ let recordChunks: Blob[] = [];
 
 async function toggleRecord() {
   if (mediaRecorder?.state === 'recording') { mediaRecorder.stop(); return; }
+  if (!engine.ready) { setStatus('engine not ready', 'error'); return; }
   try {
-    const stream = await (navigator.mediaDevices as any).getDisplayMedia({ audio: true, video: false });
+    const stream = engine.startRecording();
+    const mimeType = MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4'
+      : MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '';
+    const ext = mimeType === 'audio/mp4' ? 'm4a' : 'webm';
     recordChunks = [];
-    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+    mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
     mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordChunks.push(e.data); };
     mediaRecorder.onstop = () => {
-      const url = URL.createObjectURL(new Blob(recordChunks, { type: 'audio/webm' }));
-      Object.assign(document.createElement('a'), { href: url, download: `strudel-${Date.now()}.webm` }).click();
+      engine.stopRecording();
+      const url = URL.createObjectURL(new Blob(recordChunks, { type: mimeType || 'audio/webm' }));
+      Object.assign(document.createElement('a'), { href: url, download: `strudel-${Date.now()}.${ext}` }).click();
       URL.revokeObjectURL(url);
-      stream.getTracks().forEach((t: MediaStreamTrack) => t.stop());
       recordBtn.classList.remove('recording');
-      recordBtn.textContent = '⏺ Rec';
       setStatus('recording saved', 'ok');
     };
     mediaRecorder.start();
     recordBtn.classList.add('recording');
-    recordBtn.textContent = '⏹ Stop';
     setStatus('recording…');
   } catch (e: any) {
-    setStatus(`recording unavailable: ${e?.message ?? e}`, 'error');
+    engine.stopRecording();
+    setStatus(`recording failed: ${e?.message ?? e}`, 'error');
   }
 }
+
+// ── API Key modal ─────────────────────────
+
+function updateKeyBtn() {
+  keyBtn.classList.toggle('has-key', !!store.state.apiKey);
+  keyBtn.title = store.state.apiKey ? 'API key saved — click to change' : 'Set OpenAI API key';
+}
+
+function openKeyModal() {
+  modalApikey.value = store.state.apiKey;
+  keyModal.hidden = false;
+  setTimeout(() => modalApikey.focus(), 50);
+}
+
+function closeKeyModal() { keyModal.hidden = true; }
 
 // ── Wire ─────────────────────────────────
 
@@ -164,14 +185,22 @@ function wire() {
   document.getElementById('tap-tempo')!.addEventListener('click', handleTap);
 
   // History
-  histBackBtn.addEventListener('click', () => { const c = historyBack(); if (c !== null) store.setCode(c); });
-  histFwdBtn.addEventListener('click', () => { const c = historyForward(); if (c !== null) store.setCode(c); });
+  histBackBtn.addEventListener('click', () => {
+    const c = historyBack();
+    if (c !== null) { store.setCode(c); if (store.state.isPlaying) evalCurrent(); }
+  });
+  histFwdBtn.addEventListener('click', () => {
+    const c = historyForward();
+    if (c !== null) { store.setCode(c); if (store.state.isPlaying) evalCurrent(); }
+  });
 
   // Slots
   document.querySelectorAll<HTMLButtonElement>('.slot').forEach(btn => {
     btn.addEventListener('click', () => {
-      pushHistoryAndSetCode(store.state.code); // snapshot before switching
+      const wasPlaying = store.state.isPlaying;
+      pushHistoryAndSetCode(store.state.code);
       store.setCode(activateSlot(parseInt(btn.dataset.slot ?? '0', 10)));
+      if (wasPlaying) evalCurrent();
     });
     btn.addEventListener('dblclick', e => {
       e.preventDefault();
@@ -194,15 +223,34 @@ function wire() {
   // Record
   recordBtn.addEventListener('click', toggleRecord);
 
-  // API key
-  const keyInput = document.getElementById('apikey') as HTMLInputElement;
-  keyInput.value = store.state.apiKey;
-  keyInput.addEventListener('change', () => store.setApiKey(keyInput.value.trim()));
+  // API key modal
+  keyBtn.addEventListener('click', openKeyModal);
+  document.getElementById('modal-save')!.addEventListener('click', () => {
+    store.setApiKey(modalApikey.value.trim());
+    updateKeyBtn();
+    closeKeyModal();
+  });
+  document.getElementById('modal-skip')!.addEventListener('click', closeKeyModal);
+  keyModal.addEventListener('click', e => { if (e.target === keyModal) closeKeyModal(); });
+  modalApikey.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { store.setApiKey(modalApikey.value.trim()); updateKeyBtn(); closeKeyModal(); }
+    if (e.key === 'Escape') closeKeyModal();
+  });
+  updateKeyBtn();
 
   // Chat
   mountChat(document.getElementById('messages')!);
+  setPromptFiller(text => { promptEl.value = text; promptEl.focus(); });
+  setStatusHandler(setStatus);
+  setGeneratingHandler(setGenerating);
   document.getElementById('messages')!.addEventListener('click', handleMessageClick);
   document.getElementById('clear-chat')!.addEventListener('click', clearChat);
+  document.getElementById('suggest-btn')!.addEventListener('click', async () => {
+    const btn = document.getElementById('suggest-btn') as HTMLButtonElement;
+    btn.disabled = true;
+    await doSuggest(setStatus);
+    btn.disabled = false;
+  });
   document.getElementById('explain')!.addEventListener('click', async () => {
     const btn = document.getElementById('explain') as HTMLButtonElement;
     btn.disabled = true;
@@ -256,6 +304,7 @@ function setGenerating(busy: boolean) {
 
 (async () => {
   wire();
+  if (!store.state.apiKey) openKeyModal();
   setStatus('cargando samples…');
   try {
     const canvas = document.getElementById('visualizer') as HTMLCanvasElement;

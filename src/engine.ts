@@ -15,11 +15,25 @@ class Engine {
   private _evaluate: ((code: string) => Promise<void>) | null = null;
   private _stop: (() => void) | null = null;
   ctx: AudioContext | null = null;
+  private masterGain: GainNode | null = null;
+  private recordingDest: MediaStreamAudioDestinationNode | null = null;
   ready = false;
 
   async init(view: View, canvas: HTMLCanvasElement) {
     initAudioOnFirstClick();
     this.ctx = getAudioContext() as AudioContext;
+
+    // Route all Strudel audio through masterGain so we can tap for recording and FFT
+    const realDest = this.ctx.destination;
+    this.masterGain = this.ctx.createGain();
+    this.masterGain.connect(realDest);
+    const mg = this.masterGain;
+    try {
+      // Override ctx.destination so Strudel connects through our masterGain
+      Object.defineProperty(this.ctx, 'destination', { get: () => mg, configurable: true });
+    } catch {
+      // JavaScriptCore may reject override — recording will still work via direct connect
+    }
 
     await evalScope(
       controls,
@@ -34,7 +48,7 @@ class Engine {
       registerSynthSounds(),
     ]);
 
-    initVisualizer(this.ctx);
+    initVisualizer(this.ctx, this.masterGain); // real FFT from master output
     startVisualizer(canvas);
 
     const ctx = this.ctx;
@@ -58,8 +72,29 @@ class Engine {
     store.subscribe(s => setVisualizerState(s.isPlaying, s.cps));
   }
 
+  startRecording(): MediaStream {
+    if (!this.ctx || !this.masterGain) throw new Error('engine not ready');
+    this.recordingDest = this.ctx.createMediaStreamDestination();
+    this.masterGain.connect(this.recordingDest);
+    return this.recordingDest.stream;
+  }
+
+  stopRecording() {
+    if (this.masterGain && this.recordingDest) {
+      try { this.masterGain.disconnect(this.recordingDest); } catch {}
+      this.recordingDest = null;
+    }
+  }
+
+  async ensureRunning(): Promise<void> {
+    if (this.ctx && this.ctx.state !== 'running') {
+      await this.ctx.resume();
+    }
+  }
+
   async evaluate(code: string): Promise<void> {
     if (!this.ready || !this._evaluate) throw new Error('engine not ready');
+    await this.ensureRunning();
     await this._evaluate(code);
     store.setPlaying(true);
   }

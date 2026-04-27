@@ -28,6 +28,16 @@ export async function generateVariations(
   });
 }
 
+export type Suggestion = { label: string; prompt: string };
+
+export async function suggestDirections(
+  code: string,
+  apiKey: string,
+  model = 'gpt-4o',
+): Promise<Suggestion[]> {
+  return await invoke<Suggestion[]>('suggest_directions', { code, apiKey, model });
+}
+
 export async function savePatch(content: string): Promise<string | null> {
   return await invoke<string | null>('save_patch_dialog', { content });
 }
