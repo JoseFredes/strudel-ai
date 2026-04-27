@@ -118,19 +118,18 @@ let recordChunks: Blob[] = [];
 
 async function toggleRecord() {
   if (mediaRecorder?.state === 'recording') { mediaRecorder.stop(); return; }
-  if (!engine.ready) { setStatus('engine not ready', 'error'); return; }
+  if (!engine.ready || !engine.ctx) { setStatus('engine not ready', 'error'); return; }
   try {
-    const stream = engine.startRecording();
+    const dest = engine.ctx.createMediaStreamDestination();
     const mimeType = MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4'
       : MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '';
     const ext = mimeType === 'audio/mp4' ? 'm4a' : 'webm';
     recordChunks = [];
-    mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+    mediaRecorder = new MediaRecorder(dest.stream, mimeType ? { mimeType } : {});
     mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordChunks.push(e.data); };
     mediaRecorder.onstop = () => {
-      engine.stopRecording();
       const url = URL.createObjectURL(new Blob(recordChunks, { type: mimeType || 'audio/webm' }));
-      Object.assign(document.createElement('a'), { href: url, download: `strudel-${Date.now()}.${ext}` }).click();
+      Object.assign(document.createElement('a'), { href: url, download: `loopcraft-${Date.now()}.${ext}` }).click();
       URL.revokeObjectURL(url);
       recordBtn.classList.remove('recording');
       setStatus('recording saved', 'ok');
@@ -139,7 +138,6 @@ async function toggleRecord() {
     recordBtn.classList.add('recording');
     setStatus('recording…');
   } catch (e: any) {
-    engine.stopRecording();
     setStatus(`recording failed: ${e?.message ?? e}`, 'error');
   }
 }
