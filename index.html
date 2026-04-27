@@ -9,56 +9,44 @@
   </head>
   <body>
     <div id="app">
+
       <header>
-        <!-- Transport row -->
-        <div class="controls top-row">
-          <button id="play" title="Play (Ctrl+Enter)">▶ Play</button>
-          <button id="stop" title="Stop">■ Stop</button>
-          <button id="eval" title="Re-evaluate">⟳ Eval</button>
-          <select id="examples" title="Load example">
-            <option value="">— examples —</option>
-          </select>
-          <button id="clear" title="Clear editor">✕ Clear</button>
+        <div class="top-row">
+          <button id="play">play</button>
+          <button id="stop">stop</button>
+          <button id="eval">eval</button>
+          <select id="examples"><option value="">examples</option></select>
+          <button id="clear">clear</button>
 
-          <div class="ctrl-sep"></div>
+          <div class="sep"></div>
 
-          <!-- History -->
-          <button id="hist-back" title="Undo (Ctrl+Z)" disabled>←</button>
-          <button id="hist-fwd" title="Redo" disabled>→</button>
+          <button id="hist-back" disabled title="Undo (Cmd+Z)">←</button>
+          <button id="hist-fwd"  disabled title="Redo">→</button>
 
-          <div class="ctrl-sep"></div>
+          <div class="sep"></div>
 
-          <!-- BPM + Tap -->
-          <div class="bpm-group">
-            <input id="bpm" type="range" min="60" max="200" value="120" step="1" disabled />
-            <span id="bpm-label">— BPM</span>
-            <button id="tap-tempo" title="Tap tempo">♪ Tap</button>
-          </div>
+          <input id="bpm" type="range" min="60" max="200" value="120" step="1" disabled />
+          <span id="bpm-label">— bpm</span>
+          <button id="tap-tempo">tap</button>
 
           <div class="spacer"></div>
 
-          <!-- File ops -->
-          <button id="save-patch" title="Save patch to file">💾 Save</button>
-          <button id="open-patch" title="Open patch from file">📂 Open</button>
+          <button id="save-patch">save</button>
+          <button id="open-patch">open</button>
+          <button id="record">rec</button>
 
-          <!-- Record -->
-          <button id="record" title="Record audio">⏺ Rec</button>
-
-          <!-- API key -->
-          <input id="apikey" type="password" placeholder="OpenAI key" />
+          <input id="apikey" type="password" placeholder="openai key" />
         </div>
 
-        <!-- Slots row -->
         <div id="slots-row">
-          <span class="slots-label">slots</span>
-          <button class="slot active" data-slot="0" title="Slot 1">1</button>
-          <button class="slot" data-slot="1" title="Slot 2">2</button>
-          <button class="slot" data-slot="2" title="Slot 3">3</button>
-          <button class="slot" data-slot="3" title="Slot 4">4</button>
-          <button class="slot" data-slot="4" title="Slot 5">5</button>
-          <button class="slot" data-slot="5" title="Slot 6">6</button>
-          <button class="slot" data-slot="6" title="Slot 7">7</button>
-          <button class="slot" data-slot="7" title="Slot 8">8</button>
+          <button class="slot active" data-slot="0">1</button>
+          <button class="slot" data-slot="1">2</button>
+          <button class="slot" data-slot="2">3</button>
+          <button class="slot" data-slot="3">4</button>
+          <button class="slot" data-slot="4">5</button>
+          <button class="slot" data-slot="5">6</button>
+          <button class="slot" data-slot="6">7</button>
+          <button class="slot" data-slot="7">8</button>
         </div>
       </header>
 
@@ -70,10 +58,10 @@
 
         <aside id="chat-pane">
           <div id="chat-header">
-            <span>💬 chat</span>
+            <span class="chat-label">chat</span>
             <div class="chat-header-actions">
-              <button id="explain" title="Explain current code in Spanish">✦ Explain</button>
-              <button id="clear-chat" title="Clear chat">clear</button>
+              <button id="explain">explain</button>
+              <button id="clear-chat">clear</button>
             </div>
           </div>
 
@@ -90,16 +78,20 @@
 
           <div id="chat-input">
             <textarea id="prompt" rows="2"
-              placeholder="agrega un bajo rodante en c… o: mete unos hats rápidos panorámicos…"></textarea>
+              placeholder="agrega un bajo rodante en c…"></textarea>
             <div class="send-row">
-              <button id="generate" title="Generate (Enter)">✨ Add</button>
-              <button id="variations-btn" title="Generate 3 variations">⋯ Vars</button>
+              <button id="generate">add</button>
+              <button id="variations-btn">vars</button>
             </div>
           </div>
         </aside>
       </main>
 
-      <footer id="status">loading…</footer>
+      <footer>
+        <span id="status">loading…</span>
+        <span id="status-slot"></span>
+      </footer>
+
     </div>
   </body>
 </html>

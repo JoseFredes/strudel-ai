@@ -11,6 +11,7 @@ import { EXAMPLES } from './examples';
 // ── DOM refs ─────────────────────────────
 
 const statusEl = document.getElementById('status')!;
+const statusSlotEl = document.getElementById('status-slot')!;
 const bpmInput = document.getElementById('bpm') as HTMLInputElement;
 const bpmLabel = document.getElementById('bpm-label') as HTMLSpanElement;
 const histBackBtn = document.getElementById('hist-back') as HTMLButtonElement;
@@ -21,6 +22,12 @@ const recordBtn = document.getElementById('record') as HTMLButtonElement;
 function setStatus(msg: string, kind: 'info' | 'error' | 'ok' = 'info') {
   statusEl.textContent = msg;
   statusEl.dataset.kind = kind;
+}
+
+function updateStatusSlot() {
+  const i = getActiveIdx();
+  const name = getSlot(i).name;
+  statusSlotEl.textContent = `slot ${name}`;
 }
 
 // ── Editor ───────────────────────────────
@@ -87,6 +94,7 @@ function updateSlots() {
 }
 
 store.subscribe(updateSlots);
+store.subscribe(updateStatusSlot);
 
 // ── Eval ─────────────────────────────────
 
@@ -236,6 +244,7 @@ function wire() {
   syncBpm(store.state.code);
   updateSlots();
   updateHistoryButtons();
+  updateStatusSlot();
 }
 
 function setGenerating(busy: boolean) {
